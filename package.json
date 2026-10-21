@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "MCP server exposing the Lichtblick documentation and the @lichtblick/suite extension API to AI agents",
-  "license": "UNLICENSED",
+  "license": "MPL-2.0",
   "type": "module",
   "bin": {
     "lichtblick-docs-mcp": "./dist/index.js"

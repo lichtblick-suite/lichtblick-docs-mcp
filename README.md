@@ -22,18 +22,66 @@ Each page is also exposed as an MCP resource: `lichtblick-docs://<path>`.
   the re-exports of `src/index.ts`.
 - **Transport**: stdio. The client spawns the process; no port is opened. All tools are read-only.
 
-## Quick start
+## Setup
 
-Requires Node.js 22.12+.
+Requires Node.js 22.12+ with `npx` on the `PATH` seen by the client. Nothing has to be cloned: the client starts
+the server with `npx`, which downloads and builds it from this repository.
 
-```bash
-npm install
-npm run build
-npm run inspect   # optional: MCP Inspector UI
+### VS Code (GitHub Copilot)
+
+Add the server to `.vscode/mcp.json` in a workspace, or to the user configuration (**MCP: Open User
+Configuration**):
+
+```json
+{
+  "servers": {
+    "lichtblick-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "github:lichtblick-suite/lichtblick-docs-mcp"]
+    }
+  }
+}
 ```
 
-Open this folder in VS Code; [.vscode/mcp.json](.vscode/mcp.json) registers the built server. Start it from
-**MCP: List Servers** and use the tools in Copilot Chat agent mode.
+Start it from **MCP: List Servers** (or the **Start** action shown above the entry) and use Copilot Chat in agent
+mode.
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+
+```json
+{
+  "mcpServers": {
+    "lichtblick-docs": {
+      "command": "npx",
+      "args": ["-y", "github:lichtblick-suite/lichtblick-docs-mcp"]
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add lichtblick-docs --scope user -- npx -y github:lichtblick-suite/lichtblick-docs-mcp
+```
+
+Or add the Cursor snippet above to `.mcp.json` at the project root. If the first start times out, raise the startup
+timeout, for example `MCP_TIMEOUT=120000 claude`.
+
+### Notes
+
+- **First start is slow**: `npx` clones the repository, installs its dependencies and compiles it. Later starts
+  reuse the npm cache.
+- **Updates**: the npm cache does not pick up new commits. Run `npx clear-npx-cache` and restart the server, or pin
+  a commit or tag: `github:lichtblick-suite/lichtblick-docs-mcp#<ref>`.
+- **Checking that it is used**: the chat shows each tool call (for example `docs_search`) with its input and output.
+  If the agent answers from the web instead, ask it to use the Lichtblick docs tools, or reference a tool directly
+  (`#docs_search` in VS Code).
+- **Without `npx`**: clone the repository, run `npm install && npm run build`, and use `"command": "node"` with
+  `"args": ["<clone>/dist/index.js"]`.
 
 ## Configuration
 
@@ -42,20 +90,26 @@ Open this folder in VS Code; [.vscode/mcp.json](.vscode/mcp.json) registers the 
 | `LICHTBLICK_DOCS_SITE_URL` | `https://lichtblick-suite.github.io/docs/` | Public docs URL; `llms.txt` links are resolved against it                   |
 | `LICHTBLICK_DOCS_SOURCE`   | value of `LICHTBLICK_DOCS_SITE_URL`        | URL or local Docusaurus `build/` directory to read `llms.txt` and pages from |
 
-To test unpublished docs, build the docs repo and point `LICHTBLICK_DOCS_SOURCE` at its `build/` folder.
+To test unpublished docs, build the docs repo and point `LICHTBLICK_DOCS_SOURCE` at its `build/` folder. Variables
+go in the `env` object of the server entry in the client configuration.
 
 ## Development
 
 ```bash
+npm install
+npm run build
 npm test          # vitest
 npm run typecheck
 npm run dev       # tsc --watch
+npm run inspect   # MCP Inspector UI
 ```
+
+Open this folder in VS Code; [.vscode/mcp.json](.vscode/mcp.json) registers the local build. Start it from
+**MCP: List Servers**.
 
 ## Known limitations
 
-- `docusaurus-plugin-llms` writes file-based URLs into `llms.txt` and ignores `slug`/`id` front matter, so pages
-  that override them (for example `initial-information`, `3d-panel`, `guides/introduction`) are listed but cannot
-  be fetched and are skipped from the index.
+- `docusaurus-plugin-llms` writes file-based URLs into `llms.txt` and ignores `slug`/`id` front matter, so a docs
+  page whose route differs from its file path is listed but cannot be fetched, and is skipped with a warning.
 - The extension API only covers what `@lichtblick/suite` exports; it is updated by bumping the dependency.
-- Not published; distribution (`npx`), CI and versioning are out of scope for the PoC.
+- Not published to npm and no releases yet, so every client builds the server on first start.
