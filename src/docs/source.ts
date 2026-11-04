@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 
@@ -36,7 +39,7 @@ function httpSource(base: URL): DocSource {
 
 function fileSource(root: string): DocSource {
   return {
-    read(relativePath) {
+    async read(relativePath) {
       const file = resolve(root, relativePath);
       if (!file.startsWith(root + sep)) {
         throw new Error(`Path escapes the docs source: ${relativePath}`);

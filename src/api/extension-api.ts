@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, join, resolve } from "node:path";
@@ -40,7 +43,10 @@ export class ExtensionApi {
   }
 
   load(): Promise<LoadedApi> {
-    this.#loaded ??= loadSuiteApi(this.#packageDir);
+    if (!this.#loaded) {
+      this.#loaded = loadSuiteApi(this.#packageDir);
+      this.#loaded.catch(() => (this.#loaded = undefined));
+    }
     return this.#loaded;
   }
 
