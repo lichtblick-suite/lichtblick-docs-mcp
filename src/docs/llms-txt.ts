@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 export type DocPageEntry = {
   /** Page path relative to the site URL, e.g. `docs/extensions/extension-api/panel-extension-context`. */
   path: string;
