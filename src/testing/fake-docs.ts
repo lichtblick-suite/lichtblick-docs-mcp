@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2023-2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 import type { DocSource } from "../docs/source.js";
 
 export const SITE_URL = new URL("https://lichtblick-suite.github.io/docs/");
@@ -42,13 +45,15 @@ Scaffold a new extension and register a panel with \`registerPanel\`.
 `,
 };
 
-export function createFakeDocSource(files: Record<string, string> = FILES): DocSource {
+export function createFakeDocSource(
+  files: Record<string, string> = FILES,
+): DocSource {
   return {
-    read(relativePath) {
+    async read(relativePath) {
       const contents = files[relativePath];
-      return contents === undefined
-        ? Promise.reject(new Error(`Not found: ${relativePath}`))
-        : Promise.resolve(contents);
+      return contents == undefined
+        ? await Promise.reject(new Error(`Not found: ${relativePath}`))
+        : await Promise.resolve(contents);
     },
   };
 }

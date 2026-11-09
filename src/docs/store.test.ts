@@ -1,14 +1,20 @@
-import { describe, expect, it } from "vitest";
+// SPDX-FileCopyrightText: Copyright (C) 2023-2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
 
-import { createFakeDocSource, FILES, SITE_URL } from "../testing/fake-docs.js";
+import { describe, expect, it, vi } from "vitest";
+
+import { createLogger } from "../logging.js";
 import { DocsStore } from "./store.js";
+import { createFakeDocSource, FILES, SITE_URL } from "../testing/fake-docs.js";
 
 describe("DocsStore", () => {
   const store = new DocsStore(createFakeDocSource(), SITE_URL);
 
   it("lists pages, optionally by section", async () => {
     expect(await store.list()).toHaveLength(3);
-    expect((await store.list("guides")).map((page) => page.path)).toEqual(["guides/create-custom-panel"]);
+    expect((await store.list("guides")).map((page) => page.path)).toEqual([
+      "guides/create-custom-panel",
+    ]);
   });
 
   it.each([
@@ -42,5 +48,70 @@ describe("DocsStore", () => {
     const partial = new DocsStore(createFakeDocSource(files), SITE_URL);
 
     expect(await partial.search("rosbridge", 5)).not.toHaveLength(0);
+  });
+
+  it("verifies every page and reports the ones that fail to load", async () => {
+    // Given
+    const files = { ...FILES };
+    delete files["guides/create-custom-panel.md"];
+    const partial = new DocsStore(createFakeDocSource(files), SITE_URL);
+
+    // When
+    const result = await partial.verify();
+
+    // Then
+    expect(result.pages).toBe(3);
+    expect(result.failures).toEqual([
+      {
+        path: "guides/create-custom-panel",
+        reason: "Not found: guides/create-custom-panel.md",
+      },
+    ]);
+  });
+
+  it("logs a docs_index summary with skipped pages when warming up", async () => {
+    // Given
+    const files = { ...FILES };
+    delete files["guides/create-custom-panel.md"];
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+    const partial = new DocsStore(createFakeDocSource(files), SITE_URL, logger);
+
+    // When
+    partial.warmUp();
+
+    // Then
+    await vi.waitFor(() => {
+      expect(lines).toHaveLength(1);
+    });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      event: "docs_index",
+      pages: 2,
+      skipped: [
+        expect.stringMatching(/^guides\/create-custom-panel \(/) as string,
+      ],
+    });
+  });
+
+  it("logs an error and retries later when llms.txt cannot be read during warm-up", async () => {
+    // Given
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+    const files: Record<string, string> = {};
+    const retrying = new DocsStore(
+      createFakeDocSource(files),
+      SITE_URL,
+      logger,
+    );
+
+    // When
+    retrying.warmUp();
+    await vi.waitFor(() => {
+      expect(lines.some((line) => line.includes('"event":"error"'))).toBe(true);
+    });
+    Object.assign(files, FILES);
+
+    // Then
+    expect(await retrying.search("rosbridge", 5)).not.toHaveLength(0);
   });
 });

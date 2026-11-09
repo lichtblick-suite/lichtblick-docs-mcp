@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2023-2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, join, resolve } from "node:path";
@@ -39,46 +42,62 @@ export class ExtensionApi {
     this.#packageDir = packageDir;
   }
 
-  load(): Promise<LoadedApi> {
-    this.#loaded ??= loadSuiteApi(this.#packageDir);
-    return this.#loaded;
+  async load(): Promise<LoadedApi> {
+    if (!this.#loaded) {
+      this.#loaded = loadSuiteApi(this.#packageDir);
+      this.#loaded.catch(() => (this.#loaded = undefined));
+    }
+    return await this.#loaded;
   }
 
   async get(name: string): Promise<ApiSymbol | undefined> {
     const { symbols } = await this.load();
     const lower = name.toLowerCase();
-    return symbols.get(name) ?? [...symbols.values()].find((symbol) => symbol.name.toLowerCase() === lower);
+    return (
+      symbols.get(name) ??
+      [...symbols.values()].find(
+        (symbol) => symbol.name.toLowerCase() === lower,
+      )
+    );
   }
 
   async suggest(query: string, max = 15): Promise<string[]> {
     const { symbols } = await this.load();
     const lower = query.toLowerCase();
-    return [...symbols.keys()].filter((name) => name.toLowerCase().includes(lower)).slice(0, max);
+    return [...symbols.keys()]
+      .filter((name) => name.toLowerCase().includes(lower))
+      .slice(0, max);
   }
 }
 
 export function resolveSuitePackageDir(): string {
-  return dirname(createRequire(import.meta.url).resolve("@lichtblick/suite/package.json"));
+  return dirname(
+    createRequire(import.meta.url).resolve("@lichtblick/suite/package.json"),
+  );
 }
 
 export async function loadSuiteApi(packageDir: string): Promise<LoadedApi> {
-  const { version } = JSON.parse(await readFile(join(packageDir, "package.json"), "utf8")) as { version: string };
+  const { version } = JSON.parse(
+    await readFile(join(packageDir, "package.json"), "utf8"),
+  ) as { version: string };
   const srcDir = join(packageDir, "src");
   const modules = new Map<string, Promise<ParsedModule>>();
-  const parse = (file: string) => {
+  const parse = async (file: string) => {
     let parsed = modules.get(file);
     if (!parsed) {
       parsed = readFile(file, "utf8").then((text) => parseModule(file, text));
       modules.set(file, parsed);
     }
-    return parsed;
+    return await parsed;
   };
 
   const entry = await parse(join(srcDir, "index.ts"));
   const symbols = new Map(entry.declarations);
   const reExported = await Promise.all(
     entry.reExports.map(async ({ name, exportedAs, from }) => {
-      const symbol = (await parse(resolve(srcDir, `${from}.ts`))).declarations.get(name);
+      const symbol = (
+        await parse(resolve(srcDir, `${from}.ts`))
+      ).declarations.get(name);
       return symbol && { ...symbol, name: exportedAs };
     }),
   );
@@ -91,14 +110,24 @@ export async function loadSuiteApi(packageDir: string): Promise<LoadedApi> {
 }
 
 export function parseModule(fileName: string, text: string): ParsedModule {
-  const sourceFile = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true);
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+  );
   const declarations = new Map<string, ApiSymbol>();
   const reExports: ParsedModule["reExports"] = [];
 
   for (const statement of sourceFile.statements) {
     if (ts.isExportDeclaration(statement)) {
       const { exportClause, moduleSpecifier } = statement;
-      if (exportClause && ts.isNamedExports(exportClause) && moduleSpecifier && ts.isStringLiteral(moduleSpecifier)) {
+      if (
+        exportClause &&
+        ts.isNamedExports(exportClause) &&
+        moduleSpecifier &&
+        ts.isStringLiteral(moduleSpecifier)
+      ) {
         for (const element of exportClause.elements) {
           reExports.push({
             name: (element.propertyName ?? element.name).text,
@@ -114,7 +143,10 @@ export function parseModule(fileName: string, text: string): ParsedModule {
     if (!kind || !isExported(statement)) {
       continue;
     }
-    const source = [attachedComments(sourceFile, statement), statement.getText(sourceFile)]
+    const source = [
+      attachedComments(sourceFile, statement),
+      statement.getText(sourceFile),
+    ]
       .filter(Boolean)
       .join("\n");
     for (const name of declaredNames(statement)) {
@@ -128,7 +160,10 @@ export function parseModule(fileName: string, text: string): ParsedModule {
 function isExported(statement: ts.Statement): boolean {
   return (
     ts.canHaveModifiers(statement) &&
-    (ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false)
+    (ts
+      .getModifiers(statement)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ??
+      false)
   );
 }
 

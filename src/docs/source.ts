@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2023-2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
+// SPDX-License-Identifier: MPL-2.0
+
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 
@@ -22,26 +25,31 @@ function httpSource(base: URL): DocSource {
   return {
     async read(relativePath) {
       const url = new URL(relativePath, base);
-      if (url.origin !== base.origin || !url.pathname.startsWith(base.pathname)) {
+      if (
+        url.origin !== base.origin ||
+        !url.pathname.startsWith(base.pathname)
+      ) {
         throw new Error(`Path escapes the docs source: ${relativePath}`);
       }
-      const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
       if (!response.ok) {
         throw new Error(`GET ${url.href} failed with HTTP ${response.status}`);
       }
-      return response.text();
+      return await response.text();
     },
   };
 }
 
 function fileSource(root: string): DocSource {
   return {
-    read(relativePath) {
+    async read(relativePath) {
       const file = resolve(root, relativePath);
       if (!file.startsWith(root + sep)) {
         throw new Error(`Path escapes the docs source: ${relativePath}`);
       }
-      return readFile(file, "utf8");
+      return await readFile(file, "utf8");
     },
   };
 }
