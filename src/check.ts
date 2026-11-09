@@ -13,7 +13,10 @@ export async function runCheck(
 ): Promise<number> {
   const source = config.docsSource;
   try {
-    const { pages, failures } = await new DocsStore(createDocSource(source), config.siteUrl).verify();
+    const { pages, failures } = await new DocsStore(
+      createDocSource(source),
+      config.siteUrl,
+    ).verify();
     if (pages === 0) {
       print(`FAIL: llms.txt from ${source} lists no pages`);
       return 1;
@@ -21,10 +24,14 @@ export async function runCheck(
     for (const { path, reason } of failures) {
       print(`FAIL ${path}: ${reason}`);
     }
-    print(`${pages - failures.length}/${pages} pages resolved (source: ${source})`);
+    print(
+      `${pages - failures.length}/${pages} pages resolved (source: ${source})`,
+    );
     return failures.length === 0 ? 0 : 1;
   } catch (error) {
-    print(`FAIL: could not read llms.txt from ${source}: ${errorMessage(error)}`);
+    print(
+      `FAIL: could not read llms.txt from ${source}: ${errorMessage(error)}`,
+    );
     return 1;
   }
 }

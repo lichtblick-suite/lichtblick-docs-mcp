@@ -45,13 +45,15 @@ Scaffold a new extension and register a panel with \`registerPanel\`.
 `,
 };
 
-export function createFakeDocSource(files: Record<string, string> = FILES): DocSource {
+export function createFakeDocSource(
+  files: Record<string, string> = FILES,
+): DocSource {
   return {
-    read(relativePath) {
+    async read(relativePath) {
       const contents = files[relativePath];
-      return contents === undefined
-        ? Promise.reject(new Error(`Not found: ${relativePath}`))
-        : Promise.resolve(contents);
+      return contents == undefined
+        ? await Promise.reject(new Error(`Not found: ${relativePath}`))
+        : await Promise.resolve(contents);
     },
   };
 }

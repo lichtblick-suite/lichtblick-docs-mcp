@@ -37,7 +37,10 @@ describe("runCheck", () => {
     await writeBuild(FILES);
 
     // When
-    const code = await runCheck(loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }), print);
+    const code = await runCheck(
+      loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }),
+      print,
+    );
 
     // Then
     expect(code).toBe(0);
@@ -50,7 +53,10 @@ describe("runCheck", () => {
     await writeBuild(files);
 
     // When
-    const code = await runCheck(loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }), print);
+    const code = await runCheck(
+      loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }),
+      print,
+    );
 
     // Then
     expect(code).toBe(1);
@@ -63,7 +69,10 @@ describe("runCheck", () => {
     await writeBuild({ "llms.txt": "# Empty\n" });
 
     // When
-    const code = await runCheck(loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }), print);
+    const code = await runCheck(
+      loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }),
+      print,
+    );
 
     // Then
     expect(code).toBe(1);
@@ -72,7 +81,10 @@ describe("runCheck", () => {
 
   it("fails when llms.txt cannot be read", async () => {
     // When
-    const code = await runCheck(loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }), print);
+    const code = await runCheck(
+      loadConfig({ LICHTBLICK_DOCS_SOURCE: buildDir }),
+      print,
+    );
 
     // Then
     expect(code).toBe(1);

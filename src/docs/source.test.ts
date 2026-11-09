@@ -23,7 +23,9 @@ describe("createDocSource", () => {
     try {
       // When / Then
       await expect(source.read("llms.txt")).resolves.toBe("hello");
-      await expect(source.read("../outside.md")).rejects.toThrow("escapes the docs source");
+      await expect(source.read("../outside.md")).rejects.toThrow(
+        "escapes the docs source",
+      );
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -40,18 +42,27 @@ describe("createDocSource", () => {
 
     // Then
     expect(text).toBe("page");
-    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toBe("https://example.com/docs/guides/a.md");
+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toBe(
+      "https://example.com/docs/guides/a.md",
+    );
   });
 
   it("reports http errors and rejects paths outside the base URL", async () => {
     // Given
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 404 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 404 })),
+    );
     const source = createDocSource("https://example.com/docs/");
 
     // When / Then
     await expect(source.read("missing.md")).rejects.toThrow("HTTP 404");
-    await expect(source.read("../other.md")).rejects.toThrow("escapes the docs source");
-    await expect(source.read("https://evil.example/x.md")).rejects.toThrow("escapes the docs source");
+    await expect(source.read("../other.md")).rejects.toThrow(
+      "escapes the docs source",
+    );
+    await expect(source.read("https://evil.example/x.md")).rejects.toThrow(
+      "escapes the docs source",
+    );
   });
 });
 

@@ -25,14 +25,19 @@ function httpSource(base: URL): DocSource {
   return {
     async read(relativePath) {
       const url = new URL(relativePath, base);
-      if (url.origin !== base.origin || !url.pathname.startsWith(base.pathname)) {
+      if (
+        url.origin !== base.origin ||
+        !url.pathname.startsWith(base.pathname)
+      ) {
         throw new Error(`Path escapes the docs source: ${relativePath}`);
       }
-      const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
       if (!response.ok) {
         throw new Error(`GET ${url.href} failed with HTTP ${response.status}`);
       }
-      return response.text();
+      return await response.text();
     },
   };
 }
@@ -44,7 +49,7 @@ function fileSource(root: string): DocSource {
       if (!file.startsWith(root + sep)) {
         throw new Error(`Path escapes the docs source: ${relativePath}`);
       }
-      return readFile(file, "utf8");
+      return await readFile(file, "utf8");
     },
   };
 }

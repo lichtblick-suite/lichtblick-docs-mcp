@@ -15,7 +15,9 @@ export type Config = {
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const siteUrl = new URL(withTrailingSlash(env.LICHTBLICK_DOCS_SITE_URL ?? DEFAULT_SITE_URL));
+  const siteUrl = new URL(
+    withTrailingSlash(env.LICHTBLICK_DOCS_SITE_URL ?? DEFAULT_SITE_URL),
+  );
   return {
     siteUrl,
     docsSource: env.LICHTBLICK_DOCS_SOURCE ?? siteUrl.href,

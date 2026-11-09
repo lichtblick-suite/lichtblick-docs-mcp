@@ -19,7 +19,11 @@ if (process.argv[2] === "check") {
 } else {
   const logger = config.log ? createLogger() : silentLogger;
   try {
-    const docs = new DocsStore(createDocSource(config.docsSource), config.siteUrl, logger);
+    const docs = new DocsStore(
+      createDocSource(config.docsSource),
+      config.siteUrl,
+      logger,
+    );
     const server = createServer({
       docs,
       api: new ExtensionApi(),
@@ -30,7 +34,10 @@ if (process.argv[2] === "check") {
     docs.warmUp();
   } catch (error) {
     // Fatal errors are reported even when logging is disabled.
-    createLogger()("error", { message: "failed to start lichtblick-docs-mcp", error: errorMessage(error) });
+    createLogger()("error", {
+      message: "failed to start lichtblick-docs-mcp",
+      error: errorMessage(error),
+    });
     process.exitCode = 1;
   }
 }

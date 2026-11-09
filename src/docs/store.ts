@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2023-2026 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)<lichtblick@bmwgroup.com>
 // SPDX-License-Identifier: MPL-2.0
 
-
 import MiniSearch from "minisearch";
 
 import { errorMessage, silentLogger, type Logger } from "../logging.js";
-import { parseLlmsTxt, toPagePath, trimSlashes, type DocPageEntry } from "./llms-txt.js";
+import {
+  parseLlmsTxt,
+  toPagePath,
+  trimSlashes,
+  type DocPageEntry,
+} from "./llms-txt.js";
 import { splitSections } from "./markdown.js";
 import type { DocSource } from "./source.js";
 
@@ -46,7 +50,12 @@ export class DocsStore {
   readonly #siteUrl: URL;
   readonly #logger: Logger;
   #entries: Promise<Map<string, DocPageEntry>> | undefined;
-  #index: Promise<{ search: MiniSearch<IndexedSection>; sections: Map<string, IndexedSection> }> | undefined;
+  #index:
+    | Promise<{
+        search: MiniSearch<IndexedSection>;
+        sections: Map<string, IndexedSection>;
+      }>
+    | undefined;
   readonly #markdown = new Map<string, Promise<string>>();
 
   constructor(source: DocSource, siteUrl: URL, logger: Logger = silentLogger) {
@@ -58,14 +67,20 @@ export class DocsStore {
   async list(section?: string): Promise<DocPageEntry[]> {
     const entries = [...(await this.#loadEntries()).values()];
     return section
-      ? entries.filter((entry) => entry.section.toLowerCase() === section.toLowerCase())
+      ? entries.filter(
+          (entry) => entry.section.toLowerCase() === section.toLowerCase(),
+        )
       : entries;
   }
 
   /** Accepts a page path, a path with `.md`/anchor, or a full page URL. */
   async fetch(pathOrUrl: string): Promise<DocPage | undefined> {
-    const entry = (await this.#loadEntries()).get(this.#normalizePath(pathOrUrl));
-    return entry && { ...entry, markdown: await this.#loadMarkdown(entry.path) };
+    const entry = (await this.#loadEntries()).get(
+      this.#normalizePath(pathOrUrl),
+    );
+    return (
+      entry && { ...entry, markdown: await this.#loadMarkdown(entry.path) }
+    );
   }
 
   async search(query: string, limit: number): Promise<SearchHit[]> {
@@ -94,9 +109,12 @@ export class DocsStore {
 
   /** Starts building the search index in the background so the first docs_search is fast. */
   warmUp(): void {
-    this.#loadIndex().catch((error: unknown) =>
-      this.#logger("error", { message: "failed to build the docs index", error: errorMessage(error) }),
-    );
+    this.#loadIndex().catch((error: unknown) => {
+      this.#logger("error", {
+        message: "failed to build the docs index",
+        error: errorMessage(error),
+      });
+    });
   }
 
   /** Fetches every page listed in llms.txt and reports the ones that cannot be loaded. */
@@ -110,35 +128,47 @@ export class DocsStore {
       return toPagePath(pathOrUrl, this.#siteUrl) ?? "";
     }
     const withoutAnchor = pathOrUrl.split("#")[0] ?? "";
-    return trimSlashes(withoutAnchor.endsWith(".md") ? withoutAnchor.slice(0, -3) : withoutAnchor);
+    return trimSlashes(
+      withoutAnchor.endsWith(".md")
+        ? withoutAnchor.slice(0, -3)
+        : withoutAnchor,
+    );
   }
 
-  #loadEntries(): Promise<Map<string, DocPageEntry>> {
+  async #loadEntries(): Promise<Map<string, DocPageEntry>> {
     if (!this.#entries) {
       this.#entries = this.#source
         .read("llms.txt")
-        .then((text) => new Map(parseLlmsTxt(text, this.#siteUrl).map((entry) => [entry.path, entry])));
+        .then(
+          (text) =>
+            new Map(
+              parseLlmsTxt(text, this.#siteUrl).map((entry) => [
+                entry.path,
+                entry,
+              ]),
+            ),
+        );
       this.#entries.catch(() => (this.#entries = undefined));
     }
-    return this.#entries;
+    return await this.#entries;
   }
 
-  #loadMarkdown(path: string): Promise<string> {
+  async #loadMarkdown(path: string): Promise<string> {
     let markdown = this.#markdown.get(path);
     if (!markdown) {
       markdown = this.#source.read(`${path}.md`);
       this.#markdown.set(path, markdown);
       markdown.catch(() => this.#markdown.delete(path));
     }
-    return markdown;
+    return await markdown;
   }
 
-  #loadIndex() {
+  async #loadIndex() {
     if (!this.#index) {
       this.#index = this.#buildIndex();
       this.#index.catch(() => (this.#index = undefined));
     }
-    return this.#index;
+    return await this.#index;
   }
 
   async #loadAllPages(): Promise<LoadedPages> {
@@ -154,10 +184,10 @@ export class DocsStore {
     );
     const pages: LoadedPages = { loaded: [], failures: [] };
     for (const { entry, markdown, error } of results) {
-      if (markdown !== undefined) {
+      if (markdown != undefined) {
         pages.loaded.push({ entry, markdown });
       } else {
-        pages.failures.push({ path: entry.path, reason: error ?? "unknown error" });
+        pages.failures.push({ path: entry.path, reason: error });
       }
     }
     return pages;
@@ -171,13 +201,22 @@ export class DocsStore {
     for (const { entry, markdown } of loaded) {
       splitSections(markdown).forEach((section, i) => {
         const id = `${entry.path}::${i}`;
-        sections.set(id, { id, path: entry.path, title: entry.title, ...section });
+        sections.set(id, {
+          id,
+          path: entry.path,
+          title: entry.title,
+          ...section,
+        });
       });
     }
 
     const search = new MiniSearch<IndexedSection>({
       fields: ["title", "heading", "text"],
-      searchOptions: { boost: { title: 3, heading: 2 }, prefix: true, fuzzy: 0.2 },
+      searchOptions: {
+        boost: { title: 3, heading: 2 },
+        prefix: true,
+        fuzzy: 0.2,
+      },
     });
     search.addAll([...sections.values()]);
     this.#logger("docs_index", {
@@ -194,7 +233,9 @@ function snippet(text: string, terms: string[]): string {
   const flat = text.replace(/\s+/g, " ").trim();
   const lower = flat.toLowerCase();
   const firstHit = Math.min(
-    ...terms.map((term) => lower.indexOf(term.toLowerCase())).filter((index) => index >= 0),
+    ...terms
+      .map((term) => lower.indexOf(term.toLowerCase()))
+      .filter((index) => index >= 0),
   );
   const start = Number.isFinite(firstHit) ? Math.max(0, firstHit - 80) : 0;
   const end = Math.min(flat.length, start + SNIPPET_LENGTH);

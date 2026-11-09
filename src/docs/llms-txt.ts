@@ -34,7 +34,10 @@ export function parseLlmsTxt(text: string, siteUrl: URL): DocPageEntry[] {
       path,
       title: groups.title,
       url: new URL(path, siteUrl).href,
-      description: groups.rest?.startsWith(":") ? cleanDescription(groups.rest.slice(1)) : "",
+      description:
+        groups.rest?.startsWith(":") === true
+          ? cleanDescription(groups.rest.slice(1))
+          : "",
       section,
     });
   }
@@ -50,17 +53,26 @@ export function toPagePath(url: string, siteUrl: URL): string | undefined {
   } catch {
     return undefined;
   }
-  if (parsed.origin !== siteUrl.origin || !parsed.pathname.startsWith(siteUrl.pathname)) {
+  if (
+    parsed.origin !== siteUrl.origin ||
+    !parsed.pathname.startsWith(siteUrl.pathname)
+  ) {
     return undefined;
   }
-  return trimSlashes(parsed.pathname.slice(siteUrl.pathname.length)) || undefined;
+  return (
+    trimSlashes(parsed.pathname.slice(siteUrl.pathname.length)) || undefined
+  );
 }
 
 export function trimSlashes(value: string): string {
   let start = 0;
   let end = value.length;
-  while (start < end && value[start] === "/") start++;
-  while (end > start && value[end - 1] === "/") end--;
+  while (start < end && value[start] === "/") {
+    start++;
+  }
+  while (end > start && value[end - 1] === "/") {
+    end--;
+  }
   return value.slice(start, end);
 }
 

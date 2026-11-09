@@ -4,16 +4,17 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLogger } from "../logging.js";
-
-import { createFakeDocSource, FILES, SITE_URL } from "../testing/fake-docs.js";
 import { DocsStore } from "./store.js";
+import { createFakeDocSource, FILES, SITE_URL } from "../testing/fake-docs.js";
 
 describe("DocsStore", () => {
   const store = new DocsStore(createFakeDocSource(), SITE_URL);
 
   it("lists pages, optionally by section", async () => {
     expect(await store.list()).toHaveLength(3);
-    expect((await store.list("guides")).map((page) => page.path)).toEqual(["guides/create-custom-panel"]);
+    expect((await store.list("guides")).map((page) => page.path)).toEqual([
+      "guides/create-custom-panel",
+    ]);
   });
 
   it.each([
@@ -61,7 +62,10 @@ describe("DocsStore", () => {
     // Then
     expect(result.pages).toBe(3);
     expect(result.failures).toEqual([
-      { path: "guides/create-custom-panel", reason: "Not found: guides/create-custom-panel.md" },
+      {
+        path: "guides/create-custom-panel",
+        reason: "Not found: guides/create-custom-panel.md",
+      },
     ]);
   });
 
@@ -77,11 +81,15 @@ describe("DocsStore", () => {
     partial.warmUp();
 
     // Then
-    await vi.waitFor(() => expect(lines).toHaveLength(1));
-    expect(JSON.parse(lines[0] as string)).toMatchObject({
+    await vi.waitFor(() => {
+      expect(lines).toHaveLength(1);
+    });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
       event: "docs_index",
       pages: 2,
-      skipped: [expect.stringMatching(/^guides\/create-custom-panel \(/) as string],
+      skipped: [
+        expect.stringMatching(/^guides\/create-custom-panel \(/) as string,
+      ],
     });
   });
 
@@ -90,11 +98,17 @@ describe("DocsStore", () => {
     const lines: string[] = [];
     const logger = createLogger((line) => lines.push(line));
     const files: Record<string, string> = {};
-    const retrying = new DocsStore(createFakeDocSource(files), SITE_URL, logger);
+    const retrying = new DocsStore(
+      createFakeDocSource(files),
+      SITE_URL,
+      logger,
+    );
 
     // When
     retrying.warmUp();
-    await vi.waitFor(() => expect(lines.some((line) => line.includes('"event":"error"'))).toBe(true));
+    await vi.waitFor(() => {
+      expect(lines.some((line) => line.includes('"event":"error"'))).toBe(true);
+    });
     Object.assign(files, FILES);
 
     // Then
