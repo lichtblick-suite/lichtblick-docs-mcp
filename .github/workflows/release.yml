@@ -25,7 +25,6 @@ jobs:
           # npm >= 11.5 is required for trusted publishing.
           node-version: 24
           registry-url: https://registry.npmjs.org
-          cache: npm
           cache-dependency-path: npm-shrinkwrap.json
 
       - name: Verify tag, version and changelog

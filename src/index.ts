@@ -29,7 +29,8 @@ if (process.argv[2] === "check") {
     logger("ready", { version: SERVER_VERSION, docsSource: config.docsSource });
     docs.warmUp();
   } catch (error) {
-    logger("error", { message: "failed to start lichtblick-docs-mcp", error: errorMessage(error) });
+    // Fatal errors are reported even when logging is disabled.
+    createLogger()("error", { message: "failed to start lichtblick-docs-mcp", error: errorMessage(error) });
     process.exitCode = 1;
   }
 }

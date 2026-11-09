@@ -85,11 +85,9 @@ or `CLAUDE.md` so they call the tools first.
 - **Checking that it is used**: the chat shows each tool call (for example `docs_search`) with its input and output.
   If the agent answers from the web instead, ask it to use the Lichtblick docs tools, or reference a tool directly
   (`#docs_search` in VS Code). The server also logs every tool call to stderr, shown in the client's MCP output log.
-- **Verifying the package**: install the pinned version in a temporary project and run the audit there:
-  `mkdir verify && cd verify && npm init -y && npm install @lichtblick/docs-mcp@0.1.0 && npm audit signatures`.
-  The command checks only the packages in the current project.
-  the packages installed in the current project, not packages run with `npx`. To verify this package, install the
-  pinned version in a temporary project and audit it there:
+- **Verifying the package**: `npm audit signatures` only checks packages installed in the current project, not
+  packages run with `npx`. To verify the provenance of this package, install the pinned version in a temporary
+  project and audit it there:
 
   ```sh
   mkdir /tmp/verify-docs-mcp && cd /tmp/verify-docs-mcp

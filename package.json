@@ -26,6 +26,7 @@
   "files": [
     "dist",
     "!dist/**/*.map",
+    "npm-shrinkwrap.json",
     "CHANGELOG.md"
   ],
   "engines": {
